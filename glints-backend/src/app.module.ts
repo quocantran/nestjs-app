@@ -28,6 +28,9 @@ import * as redisStore from 'cache-manager-redis-store';
 import type { RedisClientOptions } from 'redis';
 import { CommentsModule } from './comments/comments.module';
 import { PaymentsModule } from './payments/payments.module';
+import { InitModule } from './init/init.module';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
+import { ResilienceModule } from 'nestjs-resilience';
 
 @Module({
   imports: [
@@ -62,10 +65,12 @@ import { PaymentsModule } from './payments/payments.module';
       isGlobal: true,
     }),
 
+    ResilienceModule.forRoot(''),
+
     //config limits rate
     ThrottlerModule.forRoot([
       {
-        ttl: 60000,
+        ttl: 1000,
         limit: 10,
       },
     ]),
@@ -132,6 +137,7 @@ import { PaymentsModule } from './payments/payments.module';
     ElasticsearchsModule,
     CommentsModule,
     PaymentsModule,
+    InitModule,
   ],
   controllers: [AppController],
   providers: [AppService],

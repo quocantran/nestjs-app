@@ -15,20 +15,13 @@ RUN npm run build
 
 #Create the final image
 FROM node:18-alpine
-
 WORKDIR /app
-
-RUN addgroup -S userTemp && adduser -S userTemp -G userTemp
 
 # Copy only the necessary files from the builder stage
 COPY --from=builder /app/dist ./dist
 COPY --from=builder /app/package*.json ./
 
 RUN npm install --quiet --only=production --no-optional --no-fund --loglevel=error
-
-RUN chown -R userTemp:userTemp /app
-
-USER userTemp
 
 EXPOSE 8000
 

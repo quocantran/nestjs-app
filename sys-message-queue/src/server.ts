@@ -17,6 +17,7 @@ connectRabbitMQ()
   });
 
 MessageService.consumerToQueueError();
+MessageService.logErrorToElastic();
 
 app.listen(3005, () => {
   console.log("Server is running on port 3005");

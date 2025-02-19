@@ -35,7 +35,7 @@ export class AppGateway
     private readonly companieSerivce: CompaniesService,
     private readonly resumesService: ResumesService,
     private readonly paymentsService: PaymentsService,
-    private readonly jwtService: JwtService
+    private readonly jwtService: JwtService,
   ) {}
 
   private clients: Map<string, Socket> = new Map();
@@ -48,13 +48,12 @@ export class AppGateway
     const accessToken = client.handshake.query.accessToken as string;
 
     const decoded = this.jwtService.decode(accessToken) as any;
-    if(decoded !== null){
+    if (decoded !== null) {
       let userEmail = decoded.email;
-  
+
       if (userEmail) {
         this.clients.set(userEmail, client);
       }
-
     }
   }
 
@@ -96,10 +95,11 @@ export class AppGateway
     payload: any,
   ): Promise<void> {
     if (payload?.senderId) {
-      const company = await this.companieSerivce.findWithUserFollow(payload.senderId);
-      if(company){
-
-        company.usersFollow.forEach((user : any) => {
+      const company = await this.companieSerivce.findWithUserFollow(
+        payload.senderId,
+      );
+      if (company) {
+        company.usersFollow.forEach((user: any) => {
           const targetClient = this.clients.get(user.email);
           if (targetClient) {
             const messages = `Công ty bạn đang theo dõi ${company.name} đã tạo mới công việc ${payload.jobName}!`;
@@ -118,7 +118,7 @@ export class AppGateway
     }
   }
 
-  @SubscribeMessage('transactionSuccess')
+  @SubscribeMessage('checkPayment')
   @UseGuards(AuthSocketGuard)
   async handleTransactionSuccess(client: Socket, payload: any): Promise<void> {
     const { jobId, userId, code } = payload;
@@ -127,16 +127,23 @@ export class AppGateway
       amount: 2000,
     });
 
-    if (!valid.transaction_status) {
-      client.emit('transactionSuccess', {
-        message: 'Transaction failed',
-        status: 0,
-      });
+    if (!valid.transaction_status || valid.status === 'error') {
+      if (valid.status != 'error') {
+        client.emit('checkPayment', {
+          message: 'Transaction failed',
+          status: 0,
+        });
+      } else {
+        client.emit('checkPayment', {
+          message: valid.message,
+          status: 'error',
+        });
+      }
       return;
     }
 
     await this.jobsService.addPaidUser(jobId, userId);
-    client.emit('transactionSuccess', {
+    client.emit('checkPayment', {
       message: 'Transaction success',
       status: 1,
     });

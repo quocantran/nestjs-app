@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { callFetchAccount } from "@/config/api";
+import Cookies from "js-cookie";
 
 // First, create the thunk
 export const fetchAccount = createAsyncThunk(
@@ -72,8 +73,9 @@ export const accountSlice = createSlice({
     },
     setLogoutAction: (state, action) => {
       localStorage.removeItem("access_token");
+      Cookies.remove("access_token");
       state.isAuthenticated = false;
-      localStorage.removeItem("userId");
+
       state.user = {
         _id: "",
         email: "",

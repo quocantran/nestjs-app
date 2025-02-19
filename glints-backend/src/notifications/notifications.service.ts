@@ -24,9 +24,9 @@ export class NotificationsService {
   ) {}
 
   async create(createNotificationDto: CreateNotificationDto) {
-    const company = await this.companyService.findOne(
+    const company = (await this.companyService.findOne(
       createNotificationDto.senderId,
-    );
+    )) as any;
 
     return Promise.all(
       company.usersFollow.map(async (userId) => {

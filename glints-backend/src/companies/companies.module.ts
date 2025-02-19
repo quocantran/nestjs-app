@@ -5,6 +5,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Company, CompanySchema } from './schemas/company.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
+import { ElasticsearchsModule } from 'src/elasticsearchs/elasticsearchs.module';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { ConfigService } from '@nestjs/config';
         inject: [ConfigService],
       },
     ]),
+    ElasticsearchsModule,
   ],
   controllers: [CompaniesController],
   providers: [CompaniesService, CompaniesModule],

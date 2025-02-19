@@ -24,6 +24,7 @@ import {
   ICreateComment,
 } from "@/types/backend";
 import { message, notification } from "antd";
+import Cookies from "js-cookie";
 
 const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL;
 const NO_RETRY_HEADER = "No-Retry";
@@ -69,6 +70,7 @@ const fetchWithInterceptor = async (
       if (access_token) {
         options.headers["Authorization"] = `Bearer ${access_token}`;
         localStorage.setItem("access_token", access_token);
+        Cookies.set("access_token", access_token, { expires: 1 });
         response = await fetch(url, options);
       }
     }
@@ -1085,25 +1087,47 @@ export const fetchNotifications = async ({
 
 // api elasticsearch
 
-export const searchWithElastic = async (body: {
+export const searchCompaniesWithElastic = async (body: {
   index: string;
   query: string;
   size?: string;
   from?: string;
 }) => {
-  const res = await fetch(`${BACKEND_URL}/api/v1/elasticsearchs/search`, {
+  const res = await fetch(
+    `${BACKEND_URL}/api/v1/elasticsearchs/companies/search`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  const data = (await res.json()) as IElasticsearchResult<ICompany>;
+
+  return data;
+};
+
+export const searchJobsWithElastic = async (body: {
+  index: string;
+  name?: string;
+  location?: string;
+  level?: string;
+  salary?: string;
+  companyId?: string;
+  sort?: string;
+  size?: number;
+  from?: number;
+}) => {
+  const res = await fetch(`${BACKEND_URL}/api/v1/elasticsearchs/jobs/search`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
-  let data;
-  if (body.index === "companies") {
-    data = (await res.json()) as IElasticsearchResult<ICompany>;
-  } else if (body.index === "jobs") {
-    data = (await res.json()) as IElasticsearchResult<IJob>;
-  }
+  const data = (await res.json()) as IElasticsearchResult<IJob>;
   return data;
 };
 

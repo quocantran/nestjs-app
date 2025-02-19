@@ -29,6 +29,8 @@ export class CompaniesService {
     @Inject('CACHE_MANAGER') private readonly cacheManager: Cache,
 
     private readonly configService: ConfigService,
+
+    private readonly elasticsearchService: MyElasticsearchsService,
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto, user: IUser) {
@@ -49,8 +51,8 @@ export class CompaniesService {
     this.client.emit('createDocument', {
       index: 'companies',
       document: newCompany,
-      retryCount : 0,
-      queueName : this.configService.get('ELASTIC_QUEUE')
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
     return newCompany;
@@ -143,21 +145,19 @@ export class CompaniesService {
 
     const company = await this.companyModel.findOne({
       _id: id,
-      isDeleted: false,
     });
 
     if (!company) throw new NotFoundException('not found company');
-
     return company;
   }
 
-  async findWithUserFollow(companyId : string){
-    return this.companyModel.findOne({_id : companyId}).populate({
-      path : 'usersFollow',
+  async findWithUserFollow(companyId: string) {
+    return this.companyModel.findOne({ _id: companyId }).populate({
+      path: 'usersFollow',
       select: {
-        email : 1,
-        name : 1
-      }
+        email: 1,
+        name: 1,
+      },
     });
   }
 
@@ -177,8 +177,8 @@ export class CompaniesService {
     this.client.emit('createDocument', {
       index: 'companies',
       document: updatedCompany,
-      retryCount : 0,
-      queueName : this.configService.get('ELASTIC_QUEUE')
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
     return updatedCompany;
@@ -205,8 +205,8 @@ export class CompaniesService {
     this.client.emit('deleteDocument', {
       index: 'companies',
       id: id,
-      retryCount : 0,
-      queueName : this.configService.get('ELASTIC_QUEUE')
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
     return this.companyModel.softDelete({
@@ -216,5 +216,13 @@ export class CompaniesService {
 
   async countCompanies() {
     return this.companyModel.countDocuments();
+  }
+
+  async insertDataToElasticsearch() {
+    const companies = await this.companyModel.find().lean().exec();
+
+    for (const company of companies) {
+      this.elasticsearchService.createDocument('companies', company);
+    }
   }
 }

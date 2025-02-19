@@ -5,7 +5,7 @@ import styles from "../../../styles/Chat.module.scss";
 import dayjs from "dayjs";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faTrash } from "@fortawesome/free-solid-svg-icons";
-import { message, Popconfirm } from "antd";
+import { Image, message, Popconfirm } from "antd";
 import { PopconfirmProps } from "antd/lib";
 import { deleteChat } from "@/config/api";
 
@@ -84,7 +84,7 @@ const MessageCard = (props: IProps) => {
 
         <div>
           {(chat.fileUrl?.length as unknown as number) > 0 && (
-            <img
+            <Image
               className={cx("img-file")}
               style={chat.user?._id === userId ? { float: "right" } : {}}
               src={chat.fileUrl}

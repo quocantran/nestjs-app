@@ -21,6 +21,7 @@ import { LoadingOutlined } from "@ant-design/icons";
 import { Flex, Spin } from "antd";
 
 import { Button, message } from "antd";
+import { debounce } from "lodash";
 
 const cx = classnames.bind(styles);
 
@@ -53,17 +54,17 @@ const Chat = () => {
       }
 
       setMessages((prevMessages: any) => [...prevMessages, message]);
-
-      setIsSend(!isSend);
     });
 
     return () => {
       socket.off("message");
     };
-  }, [isSend]);
+  }, []);
 
   useEffect(() => {
-    containerRef.current?.scrollTo(0, containerRef.current.scrollHeight);
+    setTimeout(() => {
+      containerRef.current?.scrollTo(0, containerRef.current.scrollHeight);
+    }, 100);
   }, [isSend]);
 
   useEffect(() => {
@@ -97,30 +98,30 @@ const Chat = () => {
   }, []);
 
   useEffect(() => {
-    if (current > 1) {
-      const handleScroll = async () => {
-        if (containerRef.current && containerRef.current.scrollTop === 0) {
-          setIsFetching(true);
-          const result = await fetchChats({ current: current - 1 });
-          const data = result.data?.result as IChat[];
+    if (current <= 1) return;
+    const handleScroll = async () => {
+      if (containerRef.current && containerRef.current.scrollTop === 0) {
+        setIsFetching(true);
+        const result = await fetchChats({ current: current - 1 });
+        const data = result.data?.result as IChat[];
 
-          setCurrent(result.data?.meta.current as number);
+        setCurrent(result.data?.meta.current as number);
 
-          setPrevScrollHeight(containerRef.current.scrollHeight);
+        setPrevScrollHeight(containerRef.current.scrollHeight);
 
-          setMessages((prevMessages) => [...data, ...prevMessages]);
+        setMessages((prevMessages) => [...data, ...prevMessages]);
 
-          setIsFetching(false);
-        }
-      };
+        setIsFetching(false);
+      }
+    };
 
-      const container = containerRef.current;
-      container?.addEventListener("scroll", handleScroll);
+    const container = containerRef.current;
+    const debouncedHandleScroll = debounce(handleScroll, 300);
+    container?.addEventListener("scroll", debouncedHandleScroll);
 
-      return () => {
-        container?.removeEventListener("scroll", handleScroll);
-      };
-    }
+    return () => {
+      container?.removeEventListener("scroll", debouncedHandleScroll);
+    };
   }, [current]);
 
   useEffect(() => {
@@ -147,7 +148,7 @@ const Chat = () => {
       fileUrl: fileUrl ? fileUrl : "",
     };
 
-    createChat(data);
+    await createChat(data);
     socket.emit("message", {
       user: {
         _id: user._id,
@@ -159,6 +160,7 @@ const Chat = () => {
     setFile(null);
     setFileUrl(null);
     socket.emit("stopTyping");
+    setIsSend(!isSend);
   };
 
   useEffect(() => {
@@ -186,7 +188,7 @@ const Chat = () => {
     };
   }, [input]);
 
-  const handleKeyDown = (event: KeyboardEvent) => {
+  const handleKeyDown = async (event: KeyboardEvent) => {
     if (event.key === "Enter") {
       if (
         (event as unknown as React.KeyboardEvent<HTMLTextAreaElement>).key ===
@@ -195,7 +197,7 @@ const Chat = () => {
       ) {
         event.preventDefault();
 
-        sendMessage();
+        await sendMessage();
       }
     }
   };

@@ -64,38 +64,80 @@ export default class MessageService {
         const content = JSON.parse(msg.content.toString());
         const queueName = content.data.queueName;
         console.log("content::", content);
-        
+
         const retryCount = content.data.retryCount || 0;
 
         if (retryCount >= maxRetry) {
           // kill the message
-          console.log("Message failed after 3 retries: ", msg.content.toString());
-          
-          // log error
-
+          console.log(
+            "Message failed after 3 retries: ",
+            msg.content.toString()
+          );
           channel.ack(msg);
           return;
-        }
-        else{
+        } else {
           const newContent = {
             ...content,
-            data : {
+            data: {
               ...content.data,
-              retryCount: retryCount + 1
-            }
+              retryCount: retryCount + 1,
+            },
           };
           setTimeout(() => {
-            channel.sendToQueue(queueName, Buffer.from(JSON.stringify(newContent)), {
-              expiration: 4000
-            });
-          }, 3000)
+            channel.sendToQueue(
+              queueName,
+              Buffer.from(JSON.stringify(newContent)),
+              {
+                expiration: 4000,
+              }
+            );
+          }, 3000);
           channel.ack(msg);
         }
-        
       });
     } catch (err) {
       console.error("Error in consumerToQueueError:", err);
       throw err;
     }
+  };
+
+  static logErrorToElastic = async () => {
+    const result = await connectRabbitMQ();
+
+    const { channel } = result;
+
+    const queueName = process.env.LOG_ERROR_QUEUE;
+
+    await channel.assertQueue(queueName, {
+      durable: true,
+    });
+
+    await channel.consume(queueName, async (msg) => {
+      const res = JSON.parse(msg.content.toString());
+      console.log("content::", res.data);
+
+      const { body, error, context } = res.data;
+      const logEntry = {
+        timestamp: new Date().toISOString(),
+        level: "error",
+        message: `Error processing pattern ${res.pattern}`,
+        error: {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+        },
+        request: {
+          index: body.index,
+          document: body.document,
+        },
+        context,
+      };
+      await createDocument({
+        index: "sys-server-error",
+        document: logEntry,
+      });
+
+      channel.ack(msg);
+    });
   };
 }

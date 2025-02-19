@@ -167,7 +167,6 @@ async function notiQueue() {
           deadLetterExchange: process.env.EXCHANGE_DLX as string,
           deadLetterRoutingKey: process.env.ROUTING_KEY_DLX as string,
           messageTtl: 4000,
-          
         },
       },
     },

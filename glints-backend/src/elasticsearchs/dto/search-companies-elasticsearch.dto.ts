@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
-export class SearchElasticsearchDto {
+export class SearchCompaniesElasticsearchDto {
   @IsNotEmpty()
   @IsString()
   index: string;

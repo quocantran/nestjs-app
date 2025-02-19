@@ -23,8 +23,7 @@ export class Job {
       ref: 'Company';
     };
     name: string;
-    location: string;
-    address: string;
+    logo: string;
   };
 
   @Prop([{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }])

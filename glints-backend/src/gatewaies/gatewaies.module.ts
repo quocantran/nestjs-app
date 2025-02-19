@@ -5,6 +5,7 @@ import { CompaniesModule } from 'src/companies/companies.module';
 import { PaymentsModule } from 'src/payments/payments.module';
 import { JobsModule } from 'src/jobs/jobs.module';
 import { ResumesModule } from 'src/resumes/resumes.module';
+import { APP_INTERCEPTOR } from '@nestjs/core';
 
 @Module({
   imports: [CompaniesModule, PaymentsModule, JobsModule, ResumesModule],

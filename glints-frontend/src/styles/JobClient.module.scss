@@ -1,7 +1,7 @@
 .container {
   max-width: 1400px;
   margin: 0 auto;
-  background-color: #fff;
+  background-color: rgb(243 245 247);
 }
 
 .job-content {
@@ -10,7 +10,6 @@
 }
 
 .job-select {
-  width: 33%;
   h4 {
     margin-bottom: 10px;
   }
@@ -19,12 +18,32 @@
 .job-item {
   margin-top: 20px;
   height: 100vh;
-  flex: 0.5;
+  flex: 0.6;
   overflow-y: auto;
 }
 
 .job-list {
   display: flex;
+}
+
+
+.close{
+  font-size: 20px;
+  background-color: rgb(243, 243, 243);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.2s ease 0s;
+  right: 0;
+  top: -5px;
+  position: absolute;
+  &:hover{
+    background-color: rgb(230, 230, 230);
+  }
 }
 
 .item-content {
@@ -59,6 +78,10 @@
   flex: 1;
   height: 108vh;
   overflow-y: auto;
+  background-color: #fff;
+  margin-top: 20px;
+  border-radius: 10px;
+  padding: 16px;
 }
 
 .header {
@@ -66,7 +89,7 @@
   justify-content: space-between;
   position: sticky;
   padding-top: 32px;
-  top: -1px;
+  top: -20px;
   background-color: white;
   align-items: center;
   z-index: 2;
@@ -109,6 +132,7 @@
     margin-bottom: 15px;
     margin-top: 15px;
   }
+  padding: 18px;
 }
 
 .company {
@@ -133,15 +157,22 @@
   }
 }
 
+.job-filter{
+  flex: 0.4;
+  margin-top: 20px;
+}
+
 @media screen and (max-width: 768px) {
   .job-content {
     display: block;
+    padding: 10px;
   }
 
   .job-description {
     display: none;
   }
   .job-heading {
+    padding: 10px;
     h1 {
       text-align: center;
     }

@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import classNames from "classnames/bind";
 import styles from "../../../styles/JobInfo.module.scss";
-import { Flex, message, Modal, Spin, Tag } from "antd";
+import { Flex, message, Modal, notification, Spin, Tag } from "antd";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import dayjs from "dayjs";
 import { faEye, faL } from "@fortawesome/free-solid-svg-icons";
@@ -46,16 +46,20 @@ const JobTransaction = (props: IProps) => {
       }
 
       if (isModalOpen && paymentCode && !paymentStatus && !hasPaid) {
-        // Đợi 10 giây trước khi bắt đầu interval
+        // Đợi 2 giây trước khi bắt đầu interval
         timeout = setTimeout(() => {
           interval = setInterval(() => {
             if (hasPaid) {
               clearInterval(interval);
               clearTimeout(timeout);
             }
-            socket.emit("checkPayment", { code: paymentCode });
-          }, 4000);
-        }, 10000);
+            socket.emit("checkPayment", {
+              code: paymentCode,
+              userId: user._id,
+              jobId: job._id,
+            });
+          }, 1000 * 60);
+        }, 2000);
       }
 
       return () => {
@@ -94,34 +98,26 @@ const JobTransaction = (props: IProps) => {
 
   useEffect(() => {
     if (paymentStatus) {
-      setLoading(true);
-      socket.emit("transactionSuccess", {
-        jobId: job._id,
-        userId: user._id,
-        code: paymentCode,
+      notification.success({
+        message: "Thanh toán thành công!",
+        description: "Vui lòng chờ trong giây lát!",
       });
-    }
-  }, [paymentStatus]);
-
-  useEffect(() => {
-    if (paymentStatus) {
-      socket.on("transactionSuccess", (data: any) => {
-        setTimeout(() => {
-          setHasPaid(!!data.status);
-          setLoading(false);
-        }, 2000);
-      });
-    }
-  }, [paymentStatus]);
-  useEffect(() => {
-    if (paymentStatus) {
     }
   }, [paymentStatus]);
 
   useEffect(() => {
     if (isModalOpen) {
       const handleCheckPayment = (data: any) => {
-        setPaymentStatus(!!data?.transaction_status);
+        if (typeof data.status == "number") {
+          setPaymentStatus(data.status);
+        } else {
+          setPaymentStatus(false);
+          notification.error({
+            message: "Có lỗi xảy ra!",
+            description: data.message,
+          });
+          setIsModalOpen(false);
+        }
       };
       socket.on("checkPayment", handleCheckPayment);
 
@@ -246,8 +242,8 @@ const JobTransaction = (props: IProps) => {
                       </div>
                       <div className={cx("qr-title")}>
                         <span>
-                          Sau khi thanh toán xong vui lòng chờ vài giây để hệ
-                          thống xác nhận!
+                          Sau khi thanh toán xong vui lòng không tắt bảng thanh
+                          toán chờ vài phút để hệ thống xác nhận!
                         </span>
                       </div>
                     </div>

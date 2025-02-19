@@ -17,6 +17,7 @@ import { callLogin, createOtp } from "@/config/api";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { setUserLoginInfo } from "@/lib/redux/slice/auth.slice";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
 const cx = classNames.bind(styles);
 
@@ -63,7 +64,7 @@ const Login: React.FC = () => {
       if (!res.ok) {
         notification.error({
           message: "Có lỗi xảy ra!",
-          description: data.error,
+          description: data.message,
         });
         setLoading(false);
         return;
@@ -82,11 +83,13 @@ const Login: React.FC = () => {
 
       if (res?.data) {
         localStorage.setItem("access_token", res.data.access_token);
-        localStorage.setItem("userId", res.data.user._id);
+        Cookies.set("access_token", res.data.access_token, {
+          expires: 1,
+        });
         dispatch(setUserLoginInfo(res.data.user));
         setLoading(false);
         message.success("Đăng nhập tài khoản thành công!");
-        navigate.push("/");
+        window.location.href = "/";
       } else {
         setLoading(false);
       }

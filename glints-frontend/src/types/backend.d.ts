@@ -63,7 +63,6 @@ export interface IGetAccount extends Omit<IAccount, "access_token"> {}
 
 export interface ICompany {
   _id?: string;
-  mongo_id?: string;
   name: string;
   address: string;
   logo?: string;

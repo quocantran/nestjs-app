@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import classNames from "classnames/bind";
 import styles from "../../../styles/CompanyClient.module.scss";
-import { getDocumentsElastic, searchWithElastic } from "@/config/api";
+import { getDocumentsElastic, searchCompaniesWithElastic } from "@/config/api";
 import { ICompany, IMeta } from "@/types/backend";
 import CompanyCard from "@/components/client/Company/Company.card";
 import { Flex, Pagination, Result, Spin } from "antd";
@@ -11,8 +11,12 @@ import CompanyPagination from "@/components/client/Company/Company.pagination";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faLocation, faSearch } from "@fortawesome/free-solid-svg-icons";
 import { LoadingOutlined } from "@ant-design/icons";
+import SearchComponent from "@/components/client/Company/Company.search";
+import "../../../styles/SearchComponent.scss";
 
 const cx = classNames.bind(styles);
+
+const PAGE_SIZE = 9;
 
 const CompanyClient = (props: any) => {
   const [companies, setCompanies] = useState<ICompany[]>([]);
@@ -43,14 +47,13 @@ const CompanyClient = (props: any) => {
     setLoading(true);
     if (search) {
       const fetchData = async () => {
-        const res = await searchWithElastic({
+        const res = await searchCompaniesWithElastic({
           index: "companies",
           query: searchValue,
-          size: 9 + "",
-          from: (current - 1) * 9 + "",
+          size: PAGE_SIZE + "",
+          from: (current - 1) * PAGE_SIZE + "",
         });
-        
-        
+
         setCompanies(
           res?.data.hits.map((item: any) => {
             const res = {
@@ -62,8 +65,8 @@ const CompanyClient = (props: any) => {
         );
         const temp = {
           current: current,
-          pageSize: 9,
-          pages: Math.ceil((res?.data.total.value as number) / 9),
+          pageSize: PAGE_SIZE,
+          pages: Math.ceil((res?.data.total.value as number) / PAGE_SIZE),
           total: res?.data.total.value as number,
         } as IMeta;
         setMeta(temp);
@@ -75,24 +78,23 @@ const CompanyClient = (props: any) => {
       const fetchData = async () => {
         const res = await getDocumentsElastic({
           index: "companies",
-          size: 9 + "",
-          from: (current - 1) * 9 + "",
+          size: PAGE_SIZE + "",
+          from: (current - 1) * PAGE_SIZE + "",
         });
-        console.log(res?.data.hits);
-        
+
         setCompanies(
           res?.data.hits.map((item: any) => {
             const res = {
               ...item._source,
-              _id: item._source.mongo_id,
+              _id: item._id,
             } as ICompany;
             return res;
           }) as ICompany[]
         );
         const temp = {
           current: current,
-          pageSize: 9,
-          pages: Math.ceil((res?.data.total.value as number) / 9),
+          pageSize: PAGE_SIZE,
+          pages: Math.ceil((res?.data.total.value as number) / PAGE_SIZE),
           total: res?.data.total.value as number,
         } as IMeta;
         setMeta(temp);
@@ -107,19 +109,10 @@ const CompanyClient = (props: any) => {
   return (
     <div className={cx("wrapper")}>
       <div className={cx("container")}>
-        <div className={cx("search-wrapper")}>
-          <div className={cx("search-inner")}>
-            <FontAwesomeIcon icon={faSearch} />
-            <div className={cx("search-input")}>
-              <input
-                onChange={handleChange}
-                onKeyDown={handleKeyDown}
-                type="text"
-                placeholder="Nhập từ khóa"
-              />
-            </div>
-          </div>
-        </div>
+        <SearchComponent
+          handleChange={handleChange}
+          handleKeyDown={handleKeyDown}
+        />
         {!loading && shouldRender ? (
           companies.length > 0 ? (
             <div className={cx("content")}>

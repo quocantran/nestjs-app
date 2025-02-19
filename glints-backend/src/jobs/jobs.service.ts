@@ -18,6 +18,8 @@ import { ClientProxy } from '@nestjs/microservices';
 import { CACHE_MANAGER } from '@nestjs/cache-manager';
 import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { MyElasticsearchsService } from 'src/elasticsearchs/myElasticsearchs.service';
+import { CompaniesService } from 'src/companies/companies.service';
 
 @Injectable()
 export class JobsService {
@@ -28,9 +30,16 @@ export class JobsService {
     @Inject('NOTI_SERVICE')
     private readonly client: ClientProxy,
 
+    @Inject('ELASTIC_SERVICE')
+    private readonly elasticClient: ClientProxy,
+
     @Inject(CACHE_MANAGER) private cacheManager: Cache,
 
-    private readonly configService: ConfigService
+    private readonly configService: ConfigService,
+
+    private readonly elasticService: MyElasticsearchsService,
+
+    private readonly companyService: CompaniesService,
   ) {}
 
   async getAll() {
@@ -48,10 +57,58 @@ export class JobsService {
         jobId: newJob._id,
       },
       retryCount: 0,
-      queueName: this.configService.get("NOTI_QUEUE"),
+      queueName: this.configService.get('NOTI_QUEUE'),
+    });
+
+    this.elasticClient.emit('createDocument', {
+      index: 'jobs',
+      document: newJob,
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
     return newJob;
+  }
+
+  async insertDataToElasticsearch() {
+    const jobs = await this.jobModel.find();
+    for (const job of jobs) {
+      const {
+        _id,
+        name,
+        level,
+        salary,
+        isActive,
+        skills,
+        location,
+        startDate,
+        endDate,
+        quantity,
+        deletedAt,
+        company,
+        isDeleted,
+        createdAt,
+        updatedAt,
+      } = job;
+      const jobData = {
+        _id,
+        name,
+        level,
+        salary,
+        isActive,
+        company,
+        startDate,
+        endDate,
+        quantity,
+        skills,
+        location,
+        deletedAt,
+        isDeleted,
+        createdAt,
+        updatedAt,
+      };
+      await this.elasticService.createDocument('jobs', jobData);
+    }
   }
 
   async findAll(qs: any) {
@@ -59,7 +116,6 @@ export class JobsService {
       const cacheKey = `jobs-${JSON.stringify(qs)}`;
 
       const cacheValue = (await this.cacheManager.get(cacheKey)) as string;
-
       if (cacheValue) {
         return JSON.parse(cacheValue);
       }
@@ -69,13 +125,6 @@ export class JobsService {
       delete filter.pageSize;
       delete filter.companyId;
       delete filter.companyName;
-
-      if (qs.companyId && qs.companyName) {
-        filter.company = {
-          _id: qs.companyId,
-          name: qs.companyName,
-        };
-      }
       const totalRecord = (await this.jobModel.find(filter)).length;
       const limit = qs.pageSize ? parseInt(qs.pageSize) : 10;
       const totalPage = Math.ceil(totalRecord / limit);
@@ -167,6 +216,7 @@ export class JobsService {
     }
 
     const job = {
+      _id: id,
       ...updateJobDto,
       updatedBy: {
         _id: user._id,
@@ -175,10 +225,27 @@ export class JobsService {
       },
     };
 
+    this.elasticClient.emit('createDocument', {
+      index: 'jobs',
+      document: job,
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
+    });
+
     return await this.jobModel.updateOne({ _id: id }, job);
   }
 
   async remove(id: string) {
+    const job = await this.jobModel.findOne({ _id: id });
+    if (!job) {
+      throw new BadRequestException('Job not found');
+    }
+    this.elasticClient.emit('deleteDocument', {
+      index: 'jobs',
+      id: id,
+      retryCount: 0,
+      queueName: this.configService.get('ELASTIC_QUEUE'),
+    });
     return await this.jobModel.softDelete({ _id: id });
   }
 

@@ -6,6 +6,7 @@ import { setUserLoginInfo } from "@/lib/redux/slice/auth.slice";
 import { message } from "antd";
 import { useSearchParams, useRouter } from "next/navigation";
 import React, { Suspense, useEffect } from "react";
+import Cookies from "js-cookie";
 
 const GoogleAuth = (props: any) => {
   const searchParams = useSearchParams();
@@ -36,6 +37,7 @@ const GoogleAuth = (props: any) => {
         }
 
         localStorage.setItem("access_token", token);
+        Cookies.set("access_token", token, { expires: 1 });
         localStorage.setItem("userId", res.data?.user._id as string);
         dispatch(setUserLoginInfo(res.data?.user));
         message.success("Đăng nhập thành công!");

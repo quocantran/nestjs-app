@@ -5,6 +5,7 @@ import { ElasticsearchModule } from '@nestjs/elasticsearch';
 import { ConfigService } from '@nestjs/config';
 import { CompaniesModule } from 'src/companies/companies.module';
 import { JobsModule } from 'src/jobs/jobs.module';
+import { ClientsModule, Transport } from '@nestjs/microservices';
 
 @Module({
   imports: [
@@ -19,12 +20,27 @@ import { JobsModule } from 'src/jobs/jobs.module';
       inject: [ConfigService],
     }),
 
-    CompaniesModule,
-    JobsModule,
+    ClientsModule.registerAsync([
+      {
+        name: 'ERROR_SERVICE',
+        useFactory: (configService: ConfigService) => ({
+          transport: Transport.RMQ,
+          options: {
+            urls: [configService.get<string>('RMQ_URL')],
+            queue: configService.get<string>('LOG_ERROR_QUEUE'),
+            noAck: false,
+            queueOptions: {
+              durable: true,
+            },
+          },
+        }),
+        inject: [ConfigService],
+      },
+    ]),
   ],
 
   controllers: [ElasticsearchsController],
   providers: [MyElasticsearchsService],
-  exports: [ElasticsearchsModule],
+  exports: [ElasticsearchsModule, MyElasticsearchsService],
 })
 export class ElasticsearchsModule {}

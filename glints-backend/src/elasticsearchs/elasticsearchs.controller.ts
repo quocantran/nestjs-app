@@ -1,6 +1,6 @@
 import { Controller, Get, Post, Body, Param, Logger } from '@nestjs/common';
 import { MyElasticsearchsService } from './myElasticsearchs.service';
-import { SearchElasticsearchDto } from './dto/search-elasticsearch.dto';
+import { SearchCompaniesElasticsearchDto } from './dto/search-companies-elasticsearch.dto';
 import { GetPaginateElasticsearchDto } from './dto/get-paginate-elasticsearch.dto';
 import {
   ClientProxy,
@@ -11,6 +11,7 @@ import {
   RmqContext,
 } from '@nestjs/microservices';
 import { ApiTags } from '@nestjs/swagger';
+import { SearchJobsElasticsearchDto } from './dto/search-jobs-elasticsearch-dto';
 
 @ApiTags('Elasticsearch')
 @Controller('elasticsearchs')
@@ -24,9 +25,14 @@ export class ElasticsearchsController {
     return await this.elasticsearchsService.getDocumentsPaginate(body);
   }
 
-  @Post('search')
-  async search(@Body() body: SearchElasticsearchDto) {
-    return await this.elasticsearchsService.search(body);
+  @Post('/companies/search')
+  async searchCompanies(@Body() body: SearchCompaniesElasticsearchDto) {
+    return await this.elasticsearchsService.searchCompanies(body);
+  }
+
+  @Post('/jobs/search')
+  async searchJobs(@Body() body: SearchJobsElasticsearchDto) {
+    return await this.elasticsearchsService.searchJobs(body);
   }
 
   @MessagePattern('deleteDocument')
@@ -34,15 +40,32 @@ export class ElasticsearchsController {
     @Payload() body: { index: string; id: string },
     @Ctx() context: RmqContext,
   ) {
+    const channel = context.getChannelRef();
+    const message = context.getMessage();
+    const MAX_RETRY = 3;
     try {
       await this.elasticsearchsService.delete(body.index, body.id);
-      const channel = context.getChannelRef();
       channel.ack(context.getMessage());
     } catch (err) {
-      Logger.error('Error::::::', err);
-      const channel = context.getChannelRef();
-      const message = context.getMessage();
-      channel.nack(message, false, false);
+      const msg = JSON.parse(message.content.toString());
+      const retryCount = msg.data.retryCount || 0;
+      if (retryCount < MAX_RETRY) {
+        channel.nack(message, false, false);
+      } else {
+        const dataError = {
+          error: {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+          },
+          body: body,
+          context: {
+            messageId: message.properties.messageId,
+            correlationId: message.properties.correlationId,
+          },
+        };
+        this.elasticsearchsService.logErrorToElastic(msg.pattern, dataError);
+      }
     }
   }
 
@@ -58,6 +81,7 @@ export class ElasticsearchsController {
   ) {
     const channel = context.getChannelRef();
     const message = context.getMessage();
+    const MAX_RETRY = 3;
     try {
       await this.elasticsearchsService.createDocument(
         body.index,
@@ -65,9 +89,25 @@ export class ElasticsearchsController {
       );
       channel.ack(message);
     } catch (err) {
-      Logger.error('Error::::::', err);
-
-      channel.nack(message, false, false);
+      const msg = JSON.parse(message.content.toString());
+      const retryCount = msg.data.retryCount || 0;
+      if (retryCount < MAX_RETRY) {
+        channel.nack(message, false, false);
+      } else {
+        const dataError = {
+          error: {
+            name: err.name,
+            message: err.message,
+            stack: err.stack,
+          },
+          body: body,
+          context: {
+            messageId: message.properties.messageId,
+            correlationId: message.properties.correlationId,
+          },
+        };
+        this.elasticsearchsService.logErrorToElastic(msg.pattern, dataError);
+      }
     }
   }
 }

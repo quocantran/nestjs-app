@@ -7,6 +7,7 @@ import {
   fetchJobs,
   followCompany,
   getComments,
+  searchJobsWithElastic,
   unFollowCompany,
 } from "@/config/api";
 import { Avatar, Button, message, Result, Skeleton } from "antd";
@@ -29,6 +30,8 @@ import CompanyComment from "@/components/client/Company/Company.comment";
 
 const cx = classNames.bind(styles);
 
+const PAGE_SIZE = 2;
+
 const CompanyInfo = (props: any) => {
   const [company, setCompany] = useState<ICompany>();
 
@@ -50,6 +53,10 @@ const CompanyInfo = (props: any) => {
 
   const [searchValue, setSearchValue] = useState("");
 
+  const [current, setCurrent] = useState(1);
+
+  const [jobName, setJobName] = useState("");
+
   const [commentLoading, setCommentLoading] = useState(false);
 
   const userId = useAppSelector((state) => state.auth.user?._id);
@@ -62,52 +69,20 @@ const CompanyInfo = (props: any) => {
 
   const [isFollow, setIsFollow] = useState(false);
 
+  const [followers, setFollowers] = useState<string[]>([]);
+
   const loading = useAppSelector((state) => state.auth.isLoading);
 
   const isAuth = useAppSelector((state) => state.auth.isAuthenticated);
 
   const handleNext = async () => {
     if (meta?.current === meta?.pages) return;
-    setIsSearching(true);
-
-    const jobRes = await fetchJobs({
-      pageSize: 2,
-      companyId: company?._id?.trim(),
-      companyName: company?.name.trim(),
-      current: (meta?.current as number) + 1,
-    });
-
-    setMeta((prev: any) => {
-      return {
-        ...prev,
-        current: prev.current + 1,
-      };
-    });
-    setJobs(jobRes?.data?.result as IJob[]);
-    setMeta(jobRes?.data?.meta as any);
-    setIsSearching(false);
+    setCurrent((prev: any) => prev + 1);
   };
 
   const handlePrev = async () => {
     if (meta?.current === 1) return;
-    setIsSearching(true);
-
-    const jobRes = await fetchJobs({
-      pageSize: 2,
-      companyId: company?._id?.trim(),
-      companyName: company?.name.trim(),
-      current: (meta?.current as number) - 1,
-    });
-
-    setMeta((prev: any) => {
-      return {
-        ...prev,
-        current: prev.current - 1,
-      };
-    });
-    setJobs(jobRes?.data?.result as IJob[]);
-    setMeta(jobRes?.data?.meta as any);
-    setIsSearching(false);
+    setCurrent((prev: any) => prev - 1);
   };
 
   useEffect(() => {
@@ -115,35 +90,78 @@ const CompanyInfo = (props: any) => {
       const res = await fetchCompanyById(props?.params?.id);
 
       if (res.data) {
-        const jobRes = await fetchJobs({
-          pageSize: 2,
-          companyId: res.data._id?.trim(),
-          companyName: res.data.name.trim(),
-        });
-
-        const commentList = await getComments({
-          current: 1,
-          pageSize: 30,
-          companyId: res.data._id?.trim(),
-        });
-        let totalLenght = commentList.data?.result?.length as number;
-
-        commentList.data?.result?.forEach((comment: IComment) => {
-          totalLenght += (comment.right - comment.left - 1) / 2;
-        });
-
-        setTotalComments(totalLenght);
-        setJobs(jobRes?.data?.result as IJob[]);
-        setMeta(jobRes?.data?.meta as any);
-        setComments(commentList.data?.result as IComment[]);
+        setCompany(res.data);
+        setFollowers(res.data.usersFollow as string[]);
       }
-
-      setCompany(res.data);
-      setShouldRender(true);
     };
 
     fetchData();
   }, []);
+
+  useEffect(() => {
+    if (company && comments && jobs) {
+      setShouldRender(true);
+    }
+  }, [company, comments]);
+
+  useEffect(() => {
+    const initComments = async () => {
+      const commentList = await getComments({
+        current: 1,
+        pageSize: 50,
+
+        companyId: company?._id?.trim(),
+      });
+      let totalLenght = commentList.data?.result?.length as number;
+
+      commentList.data?.result?.forEach((comment: IComment) => {
+        totalLenght += (comment.right - comment.left - 1) / 2;
+      });
+
+      setTotalComments(totalLenght);
+
+      setComments(commentList.data?.result as IComment[]);
+    };
+
+    if (company) {
+      initComments();
+    }
+  }, [company]);
+
+  useEffect(() => {
+    const initJobs = async () => {
+      setIsSearching(true);
+      const jobRes = await searchJobsWithElastic({
+        index: "jobs",
+        size: PAGE_SIZE,
+        from: (current - 1) * PAGE_SIZE,
+        companyId: company?._id?.trim(),
+        name: jobName,
+      });
+
+      const meta = {
+        current: current,
+        pageSize: PAGE_SIZE,
+        pages: Math.ceil((jobRes?.data?.total.value as number) / PAGE_SIZE),
+        total: jobRes?.data.total.value as number,
+      } as IMeta;
+
+      setMeta(meta);
+      setJobs(
+        jobRes.data.hits.map((item: any) => {
+          return {
+            _id: item._id,
+            ...item._source,
+          };
+        }) as IJob[]
+      );
+      setIsSearching(false);
+    };
+
+    if (company) {
+      initJobs();
+    }
+  }, [current, jobName, company]);
 
   useEffect(() => {
     if (meta?.current === 1) {
@@ -178,6 +196,12 @@ const CompanyInfo = (props: any) => {
 
   const handleChange = (e: any) => {
     setSearchValue(e.target.value);
+  };
+
+  const handleKeyDown = (e: any) => {
+    if (e.key === "Enter") {
+      setJobName(searchValue);
+    }
   };
 
   const handleComment = (e: any) => {
@@ -242,18 +266,7 @@ const CompanyInfo = (props: any) => {
   };
 
   const handleSearch = async () => {
-    setIsSearching(true);
-
-    const jobRes = await fetchJobs({
-      pageSize: 2,
-      companyId: company?._id?.trim(),
-      companyName: company?.name.trim(),
-      name: searchValue,
-    });
-
-    setJobs(jobRes?.data?.result as IJob[]);
-    setMeta(jobRes?.data?.meta as any);
-    setIsSearching(false);
+    setJobName(searchValue);
   };
 
   const handleClick = async (e: any) => {
@@ -266,22 +279,15 @@ const CompanyInfo = (props: any) => {
     if (isFollow) {
       // Unfollow company
       setIsFollow(false);
-      setCompany((prev: any) => {
-        return {
-          ...prev,
-          usersFollow: prev?.usersFollow?.filter(
-            (item: any) => item.toString() !== userId
-          ),
-        };
+      setFollowers((prev: any) => {
+        return prev.filter((item: any) => item !== userId);
       });
       await unFollowCompany(company?._id?.toString() as string);
     } else {
       setIsFollow(true);
-      setCompany((prev: any) => {
-        return {
-          ...prev,
-          usersFollow: [...prev?.usersFollow, userId],
-        };
+
+      setFollowers((prev: any) => {
+        return [...prev, userId];
       });
 
       // Follow company
@@ -333,7 +339,7 @@ const CompanyInfo = (props: any) => {
                 <p style={{ maxWidth: "800px" }}>{company?.address}</p>
                 <div className={cx("users-follow")}>
                   <FontAwesomeIcon icon={faUserGroup} />
-                  <span>{company?.usersFollow?.length} người theo dõi</span>
+                  <span>{followers?.length} người theo dõi</span>
                 </div>
               </div>
             </div>
@@ -372,6 +378,7 @@ const CompanyInfo = (props: any) => {
                     <input
                       type="text"
                       onChange={handleChange}
+                      onKeyDown={handleKeyDown}
                       className={cx("form-control")}
                       placeholder="Tên công việc"
                     />

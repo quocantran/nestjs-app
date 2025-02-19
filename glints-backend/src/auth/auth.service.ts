@@ -84,7 +84,6 @@ export class AuthService {
       secure: true,
     });
 
-    res.cookie('access_token',accessToken );
     return {
       access_token: accessToken,
       user: {
@@ -194,10 +193,8 @@ export class AuthService {
       secure: true,
     });
 
-    res.cookie('access_token', accessToken);
-
     return {
-      access_token: accessToken
+      access_token: accessToken,
     };
   }
 
