@@ -20,6 +20,7 @@ import { Cache } from 'cache-manager';
 import { ConfigService } from '@nestjs/config';
 import { MyElasticsearchsService } from 'src/elasticsearchs/myElasticsearchs.service';
 import { CompaniesService } from 'src/companies/companies.service';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class JobsService {
@@ -39,7 +40,7 @@ export class JobsService {
 
     private readonly elasticService: MyElasticsearchsService,
 
-    private readonly companyService: CompaniesService,
+    private readonly redisService: RedisService,
   ) {}
 
   async getAll() {
@@ -66,6 +67,8 @@ export class JobsService {
       retryCount: 0,
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
+
+    await this.redisService.clearCache('jobs');
 
     return newJob;
   }
@@ -115,7 +118,7 @@ export class JobsService {
     try {
       const cacheKey = `jobs-${JSON.stringify(qs)}`;
 
-      const cacheValue = (await this.cacheManager.get(cacheKey)) as string;
+      const cacheValue = await this.redisService.getValue(cacheKey);
       if (cacheValue) {
         return JSON.parse(cacheValue);
       }
@@ -155,9 +158,7 @@ export class JobsService {
         result: jobs,
       };
 
-      await this.cacheManager.set(cacheKey, JSON.stringify(response), {
-        ttl: 60,
-      });
+      await this.redisService.setValue(cacheKey, JSON.stringify(response), 60);
 
       return response;
     } catch (err) {
@@ -232,6 +233,8 @@ export class JobsService {
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
+    await this.redisService.clearCache('jobs');
+
     return await this.jobModel.updateOne({ _id: id }, job);
   }
 
@@ -246,30 +249,9 @@ export class JobsService {
       retryCount: 0,
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
+
+    await this.redisService.clearCache('jobs');
     return await this.jobModel.softDelete({ _id: id });
-  }
-
-  async search(searchJobDto: SearchJobDto) {
-    try {
-      const { name, location } = searchJobDto;
-      const query: any = {};
-
-      if (name) {
-        const regexName = new RegExp(name, 'i').source;
-        query.name = { $regex: regexName, $options: 'i' };
-      }
-
-      if (location) {
-        const regexLocation = new RegExp(location, 'i').source;
-        query.location = { $regex: regexLocation, $options: 'i' };
-      }
-
-      const jobs = await this.jobModel.find(query).select('name');
-
-      return jobs;
-    } catch (err) {
-      throw new BadRequestException(err.message);
-    }
   }
 
   async countJobs() {

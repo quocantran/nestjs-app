@@ -31,6 +31,7 @@ import { PaymentsModule } from './payments/payments.module';
 import { InitModule } from './init/init.module';
 import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { ResilienceModule } from 'nestjs-resilience';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -138,6 +139,7 @@ import { ResilienceModule } from 'nestjs-resilience';
     CommentsModule,
     PaymentsModule,
     InitModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [AppService],

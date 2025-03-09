@@ -21,7 +21,7 @@ COPY --from=builder /app/.next ./.next
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/public ./public
 
-RUN npm install --production
+RUN npm install --quiet --only=production --no-optional --no-fund --loglevel=error
 
 EXPOSE 3000
 

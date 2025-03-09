@@ -7,6 +7,7 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { ElasticsearchsModule } from 'src/elasticsearchs/elasticsearchs.module';
 import { CompaniesModule } from 'src/companies/companies.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -59,6 +60,7 @@ import { CompaniesModule } from 'src/companies/companies.module';
     ]),
     ElasticsearchsModule,
     CompaniesModule,
+    RedisModule,
   ],
   controllers: [JobsController],
   providers: [JobsService],

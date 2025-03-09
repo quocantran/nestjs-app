@@ -82,7 +82,7 @@ async function bootstrapHttpServer() {
     .setVersion('1.0.0')
     .addTag('api')
     .addBearerAuth()
-    .addServer('http://localhost:8000')
+    .addServer('https://site.recruitment-app.id.vn')
     .build();
   const document = SwaggerModule.createDocument(app, config);
   SwaggerModule.setup('api-docs', app, document, {

@@ -6,6 +6,7 @@ import { Company, CompanySchema } from './schemas/company.schema';
 import { ClientsModule, Transport } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { ElasticsearchsModule } from 'src/elasticsearchs/elasticsearchs.module';
+import { RedisModule } from 'src/redis/redis.module';
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { ElasticsearchsModule } from 'src/elasticsearchs/elasticsearchs.module';
       },
     ]),
     ElasticsearchsModule,
+    RedisModule,
   ],
   controllers: [CompaniesController],
   providers: [CompaniesService, CompaniesModule],

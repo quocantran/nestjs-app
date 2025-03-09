@@ -20,7 +20,7 @@ import { IUser } from 'src/users/users.interface';
 
 @WebSocketGateway({
   cors: {
-    origin: 'http://localhost:3000',
+    origin: 'https://site.recruitment-app.id.vn',
     methods: ['GET', 'POST'],
     credentials: true,
   },

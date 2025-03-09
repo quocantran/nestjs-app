@@ -61,11 +61,6 @@ export class UsersController {
     return this.usersService.findAll(qs);
   }
 
-  @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
-
   @UseGuards(JwtAuthGuard)
   @ApiOperation({ summary: 'Update user information' })
   @ApiBearerAuth()

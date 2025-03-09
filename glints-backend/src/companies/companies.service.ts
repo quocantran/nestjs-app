@@ -15,8 +15,8 @@ import mongoose from 'mongoose';
 import { FollowCompanyDto } from './dto/follow-company.dto';
 import { MyElasticsearchsService } from 'src/elasticsearchs/myElasticsearchs.service';
 import { ClientProxy } from '@nestjs/microservices';
-import { Cache } from '@nestjs/cache-manager';
 import { ConfigService } from '@nestjs/config';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class CompaniesService {
@@ -26,7 +26,7 @@ export class CompaniesService {
     @Inject('ELASTIC_SERVICE')
     private readonly client: ClientProxy,
 
-    @Inject('CACHE_MANAGER') private readonly cacheManager: Cache,
+    private readonly redisService: RedisService,
 
     private readonly configService: ConfigService,
 
@@ -66,6 +66,11 @@ export class CompaniesService {
     const { filter, sort, population } = aqp(qs);
     delete filter.current;
     delete filter.pageSize;
+    const cacheKey = 'companies-' + JSON.stringify(qs);
+    const cacheData = await this.redisService.getValue(cacheKey);
+    if (cacheData) {
+      return JSON.parse(cacheData);
+    }
     const totalRecord = (await this.companyModel.find(filter)).length;
     const limit = qs.pageSize ? parseInt(qs.pageSize) : 10;
     const totalPage = Math.ceil(totalRecord / limit);
@@ -77,6 +82,20 @@ export class CompaniesService {
       .limit(limit)
       .sort(sort as any)
       .populate(population);
+
+    await this.redisService.setValue(
+      cacheKey,
+      JSON.stringify({
+        meta: {
+          current: current,
+          pageSize: limit,
+          pages: totalPage,
+          total: totalRecord,
+        },
+        result: companies,
+      }),
+      60,
+    );
 
     return {
       meta: {
@@ -180,7 +199,7 @@ export class CompaniesService {
       retryCount: 0,
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
-
+    await this.redisService.clearCache('companies');
     return updatedCompany;
   }
 
@@ -208,6 +227,8 @@ export class CompaniesService {
       retryCount: 0,
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
+
+    await this.redisService.clearCache('companies');
 
     return this.companyModel.softDelete({
       _id: id,

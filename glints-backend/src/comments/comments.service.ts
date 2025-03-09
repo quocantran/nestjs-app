@@ -6,15 +6,14 @@ import { SoftDeleteModel } from 'soft-delete-plugin-mongoose';
 import { Comment, CommentDocument } from './schemas/comment.schema';
 import mongoose from 'mongoose';
 import { IUser } from 'src/users/users.interface';
-import { Cache } from '@nestjs/cache-manager';
 import aqp from 'api-query-params';
+import { RedisService } from 'src/redis/redis.service';
 
 @Injectable()
 export class CommentsService {
   constructor(
     @InjectModel(Comment.name)
     private readonly commentModel: SoftDeleteModel<CommentDocument>,
-    @Inject('CACHE_MANAGER') private readonly cacheManager: Cache,
   ) {}
 
   async create(createCommentDto: CreateCommentDto, user: IUser) {
@@ -91,14 +90,6 @@ export class CommentsService {
 
   async findAll(qs: any) {
     try {
-      const cacheKey = JSON.stringify(qs);
-
-      const cacheValue = (await this.cacheManager.get(cacheKey)) as string;
-
-      if (cacheValue) {
-        return JSON.parse(cacheValue);
-      }
-
       const { filter, sort, population } = aqp(qs);
       delete filter.current;
       delete filter.pageSize;

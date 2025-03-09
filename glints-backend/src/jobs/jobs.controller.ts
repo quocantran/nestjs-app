@@ -54,10 +54,6 @@ export class JobsController {
     return this.jobsService.remove(id);
   }
 
-  @Get('/search/suggest')
-  search(@Query() searhJobDto: SearchJobDto) {
-    return this.jobsService.search(searhJobDto);
-  }
   @Get('/record/count')
   countJobs() {
     return this.jobsService.countJobs();
