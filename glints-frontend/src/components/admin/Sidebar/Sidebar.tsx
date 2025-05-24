@@ -24,6 +24,7 @@ const cx = classNames.bind(styles);
 const Sidebar = () => {
   const permissions = useAppSelector((state) => state.auth.user.permissions);
   const [menuItems, setMenuItems] = useState<any>([]);
+  const user = useAppSelector((state) => state.auth.user);
 
   useEffect(() => {
     if (permissions?.length) {
@@ -145,11 +146,13 @@ const Sidebar = () => {
             icon={<FontAwesomeIcon icon={faArrowRightFromBracket} />}
           />
 
-          <SidebarItem
-            title="Dashboard"
-            href="/admin"
-            icon={<FontAwesomeIcon icon={faChartLine} />}
-          />
+          {user.role.name === "SUPER_ADMIN" && (
+            <SidebarItem
+              title="Dashboard"
+              href="/admin"
+              icon={<FontAwesomeIcon icon={faChartLine} />}
+            />
+          )}
 
           {menuItems.map((item: any, index: number) => (
             <div key={index}>{item}</div>

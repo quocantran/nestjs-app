@@ -58,7 +58,7 @@ const JobTransaction = (props: IProps) => {
               userId: user._id,
               jobId: job._id,
             });
-          }, 1000 * 60);
+          }, 1000 * 31);
         }, 2000);
       }
 
@@ -86,7 +86,7 @@ const JobTransaction = (props: IProps) => {
 
       fetchData();
     }
-  }, [hasPaid, isModalOpen]);
+  }, [hasPaid, isModalOpen, paymentStatus]);
 
   useEffect(() => {
     if (paymentCode) {
@@ -108,8 +108,9 @@ const JobTransaction = (props: IProps) => {
   useEffect(() => {
     if (isModalOpen) {
       const handleCheckPayment = (data: any) => {
-        if (typeof data.status == "number") {
+        if (typeof data.status === "number") {
           setPaymentStatus(data.status);
+          setHasPaid(data.status);
         } else {
           setPaymentStatus(false);
           notification.error({

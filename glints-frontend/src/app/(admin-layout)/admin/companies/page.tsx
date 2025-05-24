@@ -6,6 +6,7 @@ import Access from "@/components/admin/Access/Access";
 import { ALL_PERMISSIONS } from "@/config/permissions";
 import CompanyTable from "@/components/admin/Company/Company.table";
 import { useSearchParams } from "next/navigation";
+import { useAppSelector } from "@/lib/redux/hooks";
 
 const Companies = (props: any) => {
   const param = useSearchParams();
@@ -14,11 +15,17 @@ const Companies = (props: any) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [meta, setMeta] = useState<any>(null);
   const [reload, setReload] = useState(false);
+  const user = useAppSelector((state: any) => state.auth.user);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const res = await fetchCompanies(current);
+      const role = user?.role?.name;
+      console.log("role", role);
+      const res = await fetchCompanies(
+        current,
+        role === "HR" ? user.email : undefined
+      );
       setCompanies(res?.data?.result || []);
       setMeta(res?.data?.meta);
       setLoading(false);

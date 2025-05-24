@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { JobsService } from './jobs.service';
 import { JobsController } from './jobs.controller';
 import { MongooseModule } from '@nestjs/mongoose';
@@ -8,6 +8,7 @@ import { ConfigService } from '@nestjs/config';
 import { ElasticsearchsModule } from 'src/elasticsearchs/elasticsearchs.module';
 import { CompaniesModule } from 'src/companies/companies.module';
 import { RedisModule } from 'src/redis/redis.module';
+import { UsersModule } from 'src/users/users.module';
 
 @Module({
   imports: [
@@ -61,6 +62,8 @@ import { RedisModule } from 'src/redis/redis.module';
     ElasticsearchsModule,
     CompaniesModule,
     RedisModule,
+
+    forwardRef(() => UsersModule),
   ],
   controllers: [JobsController],
   providers: [JobsService],

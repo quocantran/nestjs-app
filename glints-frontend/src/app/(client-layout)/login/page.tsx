@@ -106,7 +106,7 @@ const Login: React.FC = () => {
           <Form name="basic" onFinish={onFinish} autoComplete="off">
             <Form.Item
               labelCol={{ span: 24 }}
-              label="Email (test_admin@gmail.com)"
+              label="Email"
               name="username"
               required
               rules={[
@@ -121,7 +121,7 @@ const Login: React.FC = () => {
             ) : (
               <Form.Item
                 labelCol={{ span: 24 }}
-                label="Mật khẩu (123456)"
+                label="Mật khẩu"
                 name="password"
                 rules={[
                   { required: true, message: "Mật khẩu không được để trống!" },

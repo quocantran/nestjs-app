@@ -1,6 +1,6 @@
 "use client";
 import { IPermission } from "@/types/backend";
-import { Button, Input, Popconfirm, Space, Table } from "antd";
+import { Button, Input, message, Popconfirm, Space, Table } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
@@ -137,6 +137,7 @@ const PermissionTable = (props: IProps) => {
               description={"Bạn có chắc chắn muốn xóa quyền hạn này ?"}
               onConfirm={async () => {
                 await deletePermission(entity._id);
+                message.success("Xóa quyền hạn thành công");
                 setReload(!reload);
               }}
               okText="Xác nhận"
@@ -178,7 +179,7 @@ const PermissionTable = (props: IProps) => {
 
   const handleSubmit = async () => {
     setIsFetching(true);
-    const res = await fetchPermissions(current, search);
+    const res = await fetchPermissions(1, search, "", 100);
     if (res) {
       setPermissons(res?.data?.result || []);
       setSearch("");
@@ -193,7 +194,7 @@ const PermissionTable = (props: IProps) => {
 
   const handleSubmitModule = async () => {
     setIsFetching(true);
-    const res = await fetchPermissions(current, "", module);
+    const res = await fetchPermissions(current, "", module, 100);
     if (res) {
       setPermissons(res?.data?.result || []);
       setModule("");

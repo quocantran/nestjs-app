@@ -11,12 +11,15 @@ import { Permission, PermissionDocument } from './schemas/permission.schema';
 import aqp from 'api-query-params';
 import { IUser } from 'src/users/users.interface';
 import mongoose from 'mongoose';
+import { RolesService } from 'src/roles/roles.service';
 
 @Injectable()
 export class PermissionsService {
   constructor(
     @InjectModel(Permission.name)
     private readonly permissionsModel: SoftDeleteModel<PermissionDocument>,
+
+    private readonly rolesService: RolesService,
   ) {}
 
   async create(createPermissionDto: CreatePermissionDto, user: IUser) {
@@ -96,6 +99,18 @@ export class PermissionsService {
   }
 
   async remove(id: string) {
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new BadRequestException('not found permission');
+    }
+
+    const permission = await this.permissionsModel.findOne({ _id: id });
+
+    if (!permission) {
+      throw new BadRequestException('not found permission');
+    }
+
+    await this.rolesService.deletePermissionsFromRole(id);
+
     return await this.permissionsModel.softDelete({ _id: id });
   }
 }

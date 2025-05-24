@@ -73,11 +73,12 @@ export class PaymentsService {
         Authorization: `apikey ${PAYMENT_API_KEY}`,
       },
     });
-
+    const data = await res.json();
     if (!res.ok) {
+      Logger.error('Failed to fetch payment data', data);
       throw new Error('Failed to fetch payment data');
     }
 
-    return res.json();
+    return data;
   }
 }

@@ -1,6 +1,6 @@
 "use client";
 import { ICompany } from "@/types/backend";
-import { Button, Input, Popconfirm, Space, Table } from "antd";
+import { Button, Input, message, Popconfirm, Space, Table } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
@@ -13,6 +13,7 @@ import { deleteCompany, fetchCompanies } from "@/config/api";
 import CompanyModal from "./Company.modal";
 import Access from "../Access/Access";
 import { ALL_PERMISSIONS } from "@/config/permissions";
+import { useAppSelector } from "@/lib/redux/hooks";
 
 interface IProps {
   companies: ICompany[] | [];
@@ -36,6 +37,7 @@ const CompanyTable = (props: IProps) => {
   const [openModal, setOpenModal] = useState<boolean>(false);
   const [dataInit, setDataInit] = useState<ICompany | null>(null);
   const [search, setSearch] = useState<string>("");
+  const user = useAppSelector((state) => state.auth.user);
   const pathname = usePathname();
   const { replace } = useRouter();
 
@@ -102,6 +104,7 @@ const CompanyTable = (props: IProps) => {
               description={"Bạn có chắc chắn muốn xóa công ty này ?"}
               onConfirm={async () => {
                 await deleteCompany(entity._id);
+                message.success("Xóa công ty thành công");
                 setReload(!reload);
               }}
               okText="Xác nhận"
@@ -143,7 +146,7 @@ const CompanyTable = (props: IProps) => {
 
   const handleSubmit = async () => {
     setIsFetching(true);
-    const res = await fetchCompanies(current, search);
+    const res = await fetchCompanies(1, "", search, 100);
     if (res) {
       setCompanies(res.data?.result || []);
       setSearch("");
@@ -157,23 +160,25 @@ const CompanyTable = (props: IProps) => {
       <div style={{ display: "flex", justifyContent: "space-between" }}>
         <span>Danh sách công ty</span>
 
-        <div>
-          <Input
-            onChange={handleChange}
-            value={search}
-            placeholder="Điền vào tên..."
-            style={{ width: 300 }}
-          />
+        {user.role.name !== "HR" && (
+          <div>
+            <Input
+              onChange={handleChange}
+              value={search}
+              placeholder="Điền vào tên..."
+              style={{ width: 300 }}
+            />
 
-          <Button
-            onClick={handleSubmit}
-            type="primary"
-            style={{ marginLeft: 10 }}
-            loading={isFetching}
-          >
-            Tìm kiếm theo tên
-          </Button>
-        </div>
+            <Button
+              onClick={handleSubmit}
+              type="primary"
+              style={{ marginLeft: 10 }}
+              loading={isFetching}
+            >
+              Tìm kiếm theo tên
+            </Button>
+          </div>
+        )}
 
         <div>
           <Access permission={ALL_PERMISSIONS.COMPANIES.CREATE} hideChildren>

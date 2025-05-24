@@ -98,13 +98,14 @@ const fetchWithInterceptor = async (
 
 export const fetchUsers = async (
   current: number,
-  name: string = ""
+  name: string = "",
+  pageSize: number = 10
 ): Promise<IBackendRes<IModelPaginate<IUser>> | undefined> => {
   const regex = new RegExp(name, "i");
   const res = await fetchWithInterceptor(
     `${BACKEND_URL}/api/v1/users?populate=role&pageSize=5&current=${current}${
       name ? `&name=${regex}` : ""
-    }`,
+    }${pageSize ? `&pageSize=${pageSize}` : ""}`,
     {
       method: "GET",
       headers: {
@@ -216,6 +217,7 @@ export const deleteUser = async (id: string) => {
 // API COMPANIES
 export const fetchCompanies = async (
   current: number = 1,
+  email: string = "",
   name: string = "",
   pageSize: number = 10
 ): Promise<IBackendRes<IModelPaginate<ICompany>> | undefined> => {
@@ -223,7 +225,9 @@ export const fetchCompanies = async (
   const res = await fetchWithInterceptor(
     `${BACKEND_URL}/api/v1/companies?${current ? `current=${current}` : ""}${
       name ? `&name=${regex}` : ""
-    }${pageSize ? `&pageSize=${pageSize}` : ""}`,
+    }${pageSize ? `&pageSize=${pageSize}` : ""}${
+      email ? `&email=${email}` : ""
+    }`,
     {
       method: "GET",
       headers: {
@@ -378,13 +382,14 @@ export const deleteCompany = async (id: string) => {
 
 export const fetchRoles = async (
   current: number = 1,
-  name: string = ""
+  name: string = "",
+  pageSize: number = 10
 ): Promise<IBackendRes<IModelPaginate<IRole>> | undefined> => {
   const regex = new RegExp(name, "i");
   const res = await fetchWithInterceptor(
     `${BACKEND_URL}/api/v1/roles${current ? `?current=${current}` : ""}${
       name ? `&name=${regex}` : ""
-    }`,
+    }${pageSize ? `&pageSize=${pageSize}` : ""}`,
     {
       method: "GET",
       headers: {
@@ -485,6 +490,7 @@ export const fetchJobs = async ({
   current = 1,
   name = "",
   sort = "createdAt",
+  email = "",
   location = "",
   pageSize = 10,
   companyId = "",
@@ -499,7 +505,7 @@ export const fetchJobs = async ({
       location ? `&location=${location}` : ""
     }${companyId ? `&companyId=${companyId}` : ""}${
       companyName ? `&companyName=${companyName}` : ""
-    }`,
+    }${email ? `&email=${email}` : ""}`,
     {
       method: "GET",
       headers: {

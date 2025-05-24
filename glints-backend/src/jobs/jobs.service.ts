@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  forwardRef,
   Inject,
   Injectable,
   Logger,
@@ -21,6 +22,7 @@ import { ConfigService } from '@nestjs/config';
 import { MyElasticsearchsService } from 'src/elasticsearchs/myElasticsearchs.service';
 import { CompaniesService } from 'src/companies/companies.service';
 import { RedisService } from 'src/redis/redis.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class JobsService {
@@ -41,6 +43,9 @@ export class JobsService {
     private readonly elasticService: MyElasticsearchsService,
 
     private readonly redisService: RedisService,
+
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
   ) {}
 
   async getAll() {
@@ -48,6 +53,14 @@ export class JobsService {
   }
 
   async create(createJobDto: CreateJobDto, user: IUser) {
+    const userInDb = await this.usersService.findOneByEmail(user.email);
+
+    if (createJobDto.company._id !== userInDb.company._id) {
+      throw new BadRequestException(
+        `Please create job of company ${userInDb.company.name}`,
+      );
+    }
+
     const newJob = await this.jobModel.create(createJobDto);
 
     this.client.emit('job_created', {
@@ -128,6 +141,16 @@ export class JobsService {
       delete filter.pageSize;
       delete filter.companyId;
       delete filter.companyName;
+      let currentUser = null;
+
+      if (filter.email) {
+        currentUser = await this.usersService.findOneByEmail(filter.email);
+      }
+
+      if (currentUser) {
+        filter['company._id'] = currentUser.company._id;
+      }
+      delete filter.email;
       const totalRecord = (await this.jobModel.find(filter)).length;
       const limit = qs.pageSize ? parseInt(qs.pageSize) : 10;
       const totalPage = Math.ceil(totalRecord / limit);
@@ -212,6 +235,14 @@ export class JobsService {
   }
 
   async update(id: string, updateJobDto: UpdateJobDto, user: IUser) {
+    const userInDb = await this.usersService.findOneByEmail(user.email);
+
+    if (updateJobDto.company._id !== userInDb.company._id) {
+      throw new BadRequestException(
+        `Please update job of company ${userInDb.company.name}`,
+      );
+    }
+
     if (!mongoose.Types.ObjectId.isValid(id)) {
       throw new NotFoundException('Job not found');
     }
@@ -238,10 +269,22 @@ export class JobsService {
     return await this.jobModel.updateOne({ _id: id }, job);
   }
 
-  async remove(id: string) {
+  async remove(id: string, user: IUser) {
+    const userInDb = await this.usersService.findOneByEmail(user.email);
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      throw new NotFoundException('Job not found');
+    }
+
     const job = await this.jobModel.findOne({ _id: id });
     if (!job) {
       throw new BadRequestException('Job not found');
+    }
+
+    if (job.company._id.toString() !== userInDb.company._id.toString()) {
+      throw new BadRequestException(
+        `Please delete job of company ${job.company.name}`,
+      );
     }
     this.elasticClient.emit('deleteDocument', {
       index: 'jobs',

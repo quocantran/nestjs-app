@@ -7,6 +7,7 @@ import { ALL_PERMISSIONS } from "@/config/permissions";
 
 import JobTable from "@/components/admin/Jobs/Job.table";
 import { useSearchParams } from "next/navigation";
+import { useAppSelector } from "@/lib/redux/hooks";
 
 const Jobs = (props: any) => {
   const param = useSearchParams();
@@ -15,11 +16,17 @@ const Jobs = (props: any) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [meta, setMeta] = useState<any>(null);
   const [reload, setReload] = useState(false);
+  const user = useAppSelector((state: any) => state.auth.user);
 
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
-      const res = await fetchJobs({ current: current });
+      const role = user?.role?.name;
+      console.log("role", role);
+      const res = await fetchJobs({
+        current: current,
+        email: role === "HR" ? user.email : undefined,
+      });
       setJobs(res?.data?.result || []);
       setMeta(res?.data?.meta);
       setLoading(false);

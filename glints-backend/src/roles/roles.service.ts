@@ -12,12 +12,16 @@ import { IUser } from 'src/users/users.interface';
 import aqp from 'api-query-params';
 import mongoose from 'mongoose';
 import { NotFoundError } from 'rxjs';
+import { UsersService } from 'src/users/users.service';
+import { PermissionsService } from 'src/permissions/permissions.service';
 
 @Injectable()
 export class RolesService {
   constructor(
     @InjectModel(Role.name)
     private readonly roleModel: SoftDeleteModel<RoleDocument>,
+
+    private readonly usersService: UsersService,
   ) {}
 
   async create(createRoleDto: CreateRoleDto, user: IUser) {
@@ -37,6 +41,13 @@ export class RolesService {
       _id: role._id,
       createdAt: role.createdAt,
     };
+  }
+
+  async deletePermissionsFromRole(permissionId: string) {
+    return await this.roleModel.updateMany(
+      { permissions: { $in: [permissionId] } },
+      { $pull: { permissions: permissionId } },
+    );
   }
 
   async findAll(qs: any) {
@@ -100,6 +111,21 @@ export class RolesService {
   }
 
   async remove(id: string) {
+    const usersWithRole = await this.usersService.findByRoleId(id);
+
+    if (usersWithRole.length > 0) {
+      const normalRole = await this.roleModel.findOne({ name: 'NORMAL_USER' });
+
+      const updateUsers = usersWithRole.map((u: any) => {
+        return this.usersService.updateUserRole(
+          u._id,
+          normalRole._id.toString(),
+        );
+      });
+
+      await Promise.all(updateUsers);
+    }
+
     return this.roleModel.softDelete({ _id: id });
   }
 }

@@ -91,6 +91,18 @@ export class UsersService {
     };
   }
 
+  async findOneByEmail(email: string) {
+    return (
+      await this.userModel.findOne({ email: email, isDeleted: 'false' })
+    ).populate({
+      path: 'role company',
+      select: {
+        _id: 1,
+        name: 1,
+      },
+    });
+  }
+
   async findOne(id: string) {
     if (mongoose.Types.ObjectId.isValid(id) === false)
       throw new NotFoundException('not found user');
@@ -140,6 +152,19 @@ export class UsersService {
           name: user.name,
           email: user.email,
         },
+      },
+    );
+  }
+
+  async findByRoleId(roleId: string) {
+    return await this.userModel.find({ role: roleId });
+  }
+
+  async updateUserRole(userId: string, roleId: string) {
+    return await this.userModel.updateOne(
+      { _id: userId },
+      {
+        role: roleId,
       },
     );
   }

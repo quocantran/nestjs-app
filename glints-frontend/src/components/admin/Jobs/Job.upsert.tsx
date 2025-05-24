@@ -277,6 +277,7 @@ const JobUpsert = (props: any) => {
                   ]}
                 >
                   <DebounceSelect
+                    readonly={!!dataUpdate?._id}
                     allowClear
                     showSearch
                     defaultValue={companies}

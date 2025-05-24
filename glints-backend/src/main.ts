@@ -71,7 +71,10 @@ async function bootstrapHttpServer() {
   app.useWebSocketAdapter(new IoAdapter(app));
 
   app.enableCors({
-    origin: [configService.get<string>('URL_FRONTEND')],
+    origin: [
+      configService.get<string>('URL_FRONTEND'),
+      'http://localhost:3000',
+    ],
     credentials: true,
   });
 

@@ -1,6 +1,6 @@
 "use client";
 import { IRole } from "@/types/backend";
-import { Button, Input, Popconfirm, Space, Table, Tag } from "antd";
+import { Button, Input, message, Popconfirm, Space, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
@@ -124,6 +124,7 @@ const RoleTable = (props: IProps) => {
               description={"Bạn có chắc chắn muốn xóa vai trò này ?"}
               onConfirm={async () => {
                 await deleteRole(entity._id);
+                message.success("Xóa vai trò thành công");
                 setReload(!reload);
               }}
               okText="Xác nhận"
@@ -165,7 +166,7 @@ const RoleTable = (props: IProps) => {
 
   const handleSubmit = async () => {
     setIsFetching(true);
-    const res = await fetchRoles(current, search);
+    const res = await fetchRoles(current, search, 100);
     if (res) {
       setRoles(res.data?.result || []);
       setSearch("");

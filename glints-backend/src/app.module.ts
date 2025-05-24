@@ -56,7 +56,6 @@ import { RedisModule } from './redis/redis.module';
         ttl: 60 * 1000,
         host: configService.get<string>('REDIS_HOST'),
         port: configService.get<number>('REDIS_PORT'),
-        password: configService.get<string>('REDIS_PASSWORD'),
       }),
       inject: [ConfigService],
       isGlobal: true,

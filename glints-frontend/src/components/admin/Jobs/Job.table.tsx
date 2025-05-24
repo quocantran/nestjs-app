@@ -1,6 +1,6 @@
 "use client";
 import { IJob } from "@/types/backend";
-import { Button, Input, Popconfirm, Space, Table, Tag } from "antd";
+import { Button, Input, message, Popconfirm, Space, Table, Tag } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import React, { useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import { DeleteOutlined, EditOutlined } from "@ant-design/icons";
 import { fetchJobs, deleteJob } from "@/config/api";
 import Access from "../Access/Access";
 import { ALL_PERMISSIONS } from "@/config/permissions";
+import { useAppSelector } from "@/lib/redux/hooks";
 
 interface IProps {
   jobs: IJob[] | [];
@@ -34,6 +35,7 @@ const JobTable = (props: IProps) => {
   const navigate = useRouter();
   const [search, setSearch] = useState<string>("");
   const pathname = usePathname();
+  const user = useAppSelector((state) => state.auth.user);
   const { replace } = useRouter();
 
   useEffect(() => {
@@ -115,6 +117,7 @@ const JobTable = (props: IProps) => {
               description={"Bạn có chắc chắn muốn xóa công việc này ?"}
               onConfirm={async () => {
                 await deleteJob(entity._id);
+                message.success("Xóa công việc thành công");
                 setReload(!reload);
               }}
               okText="Xác nhận"
@@ -156,7 +159,12 @@ const JobTable = (props: IProps) => {
 
   const handleSubmit = async () => {
     setIsFetching(true);
-    const res = await fetchJobs({ current, name: search });
+    const res = await fetchJobs({
+      current: 1,
+      name: search,
+      pageSize: 100,
+      email: user.role.name === "HR" ? user.email : undefined,
+    });
     if (res) {
       setJobs(res.data?.result || []);
       setSearch("");

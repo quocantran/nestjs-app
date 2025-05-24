@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  forwardRef,
   Inject,
   Injectable,
   NotFoundException,
@@ -17,6 +18,7 @@ import { MyElasticsearchsService } from 'src/elasticsearchs/myElasticsearchs.ser
 import { ClientProxy } from '@nestjs/microservices';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from 'src/redis/redis.service';
+import { UsersService } from 'src/users/users.service';
 
 @Injectable()
 export class CompaniesService {
@@ -31,6 +33,9 @@ export class CompaniesService {
     private readonly configService: ConfigService,
 
     private readonly elasticsearchService: MyElasticsearchsService,
+
+    @Inject(forwardRef(() => UsersService))
+    private readonly usersService: UsersService,
   ) {}
 
   async create(createCompanyDto: CreateCompanyDto, user: IUser) {
@@ -55,6 +60,8 @@ export class CompaniesService {
       queueName: this.configService.get('ELASTIC_QUEUE'),
     });
 
+    await this.redisService.clearCache('companies');
+
     return newCompany;
   }
 
@@ -71,6 +78,15 @@ export class CompaniesService {
     if (cacheData) {
       return JSON.parse(cacheData);
     }
+    let currentUser = null;
+
+    if (filter.email) {
+      currentUser = await this.usersService.findOneByEmail(filter.email);
+    }
+    if (currentUser) {
+      filter._id = currentUser.company._id;
+    }
+    delete filter.email;
     const totalRecord = (await this.companyModel.find(filter)).length;
     const limit = qs.pageSize ? parseInt(qs.pageSize) : 10;
     const totalPage = Math.ceil(totalRecord / limit);
@@ -181,6 +197,12 @@ export class CompaniesService {
   }
 
   async update(id: string, updateCompanyDto: UpdateCompanyDto, user: IUser) {
+    const userInDb = await this.usersService.findOneByEmail(user.email);
+    if (userInDb.company._id.toString() !== id) {
+      throw new BadRequestException(
+        'You are not allowed to update this company',
+      );
+    }
     const updatedCompany = await this.companyModel.updateOne(
       { _id: id },
       {
@@ -204,6 +226,17 @@ export class CompaniesService {
   }
 
   async remove(id: string, user: IUser) {
+    const userInDb = (await this.usersService.findOneByEmail(
+      user.email,
+    )) as any;
+    if (userInDb.role.name !== 'SUPER_ADMIN') {
+      if (userInDb.company._id.toString() !== id) {
+        throw new BadRequestException(
+          'You are not allowed to delete this company',
+        );
+      }
+    }
+
     const company = await this.companyModel.findOne({
       _id: id,
     });

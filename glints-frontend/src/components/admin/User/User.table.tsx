@@ -1,6 +1,6 @@
 "use client";
 import { IUser } from "@/types/backend";
-import { Button, Input, Popconfirm, Space, Table } from "antd";
+import { Button, Input, message, Popconfirm, Space, Table } from "antd";
 import { ColumnsType } from "antd/es/table";
 import dayjs from "dayjs";
 import React, { useEffect, useState } from "react";
@@ -102,6 +102,7 @@ const UserTable = (props: IProps) => {
               description={"Bạn có chắc chắn muốn xóa user này ?"}
               onConfirm={async () => {
                 await deleteUser(entity._id);
+                message.success("Xóa user thành công");
                 setReload(!reload);
               }}
               okText="Xác nhận"
@@ -143,7 +144,7 @@ const UserTable = (props: IProps) => {
 
   const handleSubmit = async () => {
     setIsFetching(true);
-    const res = await fetchUsers(current, search);
+    const res = await fetchUsers(1, search, 100);
     if (res) {
       setUsers(res.data?.result || []);
       setSearch("");
